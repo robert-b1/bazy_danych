@@ -1,0 +1,186 @@
+//tworzenie sklepu - kwerenda1
+DROP DATABASE if EXISTS shop;
+CREATE DATABASE shop
+	CHARACTER SET = 'utf8'
+  	COLLATE = 'utf8_polish_ci';
+USE shop;
+#polecenia tworzące tabele
+CREATE TABLE customer(
+  customer_id INT,
+  first_name VARCHAR(15) NOT NULL,
+  last_name VARCHAR(20) NOT NULL,
+  address VARCHAR(100) NOT NULL,
+  city VARCHAR(20) NOT NULL,
+  zip_code CHAR(6) NOT NULL,
+  login VARCHAR(15) NOT NULL,
+  passwd VARCHAR(15) NOT NULL,
+  active BOOL NOT NULL DEFAULT TRUE,
+  PRIMARY KEY (customer_id),
+  UNIQUE KEY (login)
+);
+CREATE TABLE product_type(
+	prod_type INT PRIMARY KEY AUTO_INCREMENT,
+	type_name VARCHAR(20)
+);
+CREATE TABLE product(
+  prod_id INT PRIMARY KEY,
+  prod_name VARCHAR(50) NOT NULL,
+  prod_code VARCHAR(20) NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  unit VARCHAR(5) NOT NULL,
+  quantity DECIMAL(5,2) NOT NULL,
+  description JSON CHECK(JSON_VALID(description)),
+  prod_type INT,
+  CONSTRAINT FK4 
+  	FOREIGN KEY(prod_type)
+	REFERENCES product_type(prod_type)
+	ON DELETE RESTRICT
+	ON UPDATE RESTRICT 
+);
+CREATE TABLE corder(
+	order_id INT PRIMARY KEY,
+	order_datetime DATETIME NOT NULL,
+	customer_id INT,
+	order_status ENUM('SD','PDW','D','R','TU','TD'),
+	price DECIMAL(10,2) NOT NULL,
+	notes TEXT,
+	payment DECIMAL(10,2),
+	CONSTRAINT FK1 
+		FOREIGN KEY(customer_id)
+		REFERENCES customer(customer_id)
+		ON DELETE RESTRICT
+		ON UPDATE RESTRICT
+);
+CREATE TABLE product_corder(
+	prod_id INT,
+	order_id INT,
+	quantity DECIMAL(5,2),
+	PRIMARY KEY(prod_id, order_id),
+	CONSTRAINT FK2 
+		FOREIGN KEY(prod_id)
+		REFERENCES product(prod_id)
+		ON DELETE RESTRICT
+		ON UPDATE RESTRICT,
+	CONSTRAINT FK3
+		FOREIGN KEY(order_id)
+		REFERENCES corder(order_id)
+		ON DELETE CASCADE #usuwamy pozycjeproduct zamówienia jeśli usunieto zamówienie
+		ON UPDATE RESTRICT
+);
+CREATE SEQUENCE customer_seq START WITH 1 INCREMENT 1;
+CREATE SEQUENCE product_seq START WITH 1 INCREMENT 1;
+CREATE SEQUENCE corder_seq START WITH 1 INCREMENT 1; 
+CREATE VIEW payments AS
+SELECT c.order_id, c.payment, sum(p.price * pc.quantity) + c.price AS 'koszt' FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+JOIN corder c ON c.order_id = pc.order_id
+GROUP BY c.order_id;
+CREATE TABLE product_history
+LIKE product;
+ALTER TABLE product_history
+ADD COLUMN update_timestamp TIMESTAMP;
+CREATE TRIGGER product_update
+AFTER UPDATE ON product
+FOR EACH ROW
+INSERT INTO product_history VALUES 
+(OLD.prod_id, OLD.prod_name, OLD.prod_code, OLD.price, OLD.unit, OLD.quantity, OLD.description, OLD.prod_type, NOW());
+#Dodanie klienta
+INSERT INTO customer VALUES
+(nextval(customer_seq), 'Jan','Kowal','ul. Wiązowa 45/4', 'Wąchock','24-089','jankow','23456789', TRUE);
+INSERT INTO product_type VALUES
+(1, 'Laptop'),
+(2, 'Artykuły malarskie'),
+(3, 'rtykuły spożywcze');
+INSERT INTO product VALUES
+(nextval(product_seq),'Farba lateksowa','FL100/67', 56.40, 'litr',2.0,'{"kolor": "poranna zorza", "oporność": ["ścieranie", "wodooporna"]}', 2);
+INSERT INTO product VALUES
+(nextval(product_seq),'Wałek','W5400/7', 5.60, 'szt.', 1.0,'{"szerokość": "20 cm", "materiał":"bawełna, drewniany trzonek"}', 2);
+#DOdanie zamówienia
+#korzystanie z LASTVAL(customer_seq) jako zmiennej przechowującej numer ostanio dodanego klienta
+INSERT INTO corder VALUES
+(nextval(corder_seq), NOW(), LASTVAL(customer_seq),'SD', 0.0, "Listonosz zapuka dwa razy!!!", 100.0);
+#Dodanie produktu do zamówienia
+INSERT INTO product_corder VALUES 
+(lastval(product_seq), lastval(corder_seq), 1.0);
+#Dodaj nowego klienta
+INSERT INTO customer VALUES
+(nextval(customer_seq),'Ewa','Walicka', 'ul. Drogowa 3/5','Pobierowo', 45-890,'ewunia','eeew2567', TRUE);
+#Dodaj zamówienie klienta ostanio dodanego
+INSERT INTO corder VALUES
+(nextval(corder_seq), NOW(), LASTVAL(customer_seq), 'SD', 10.0, NULL, NULL);
+#Dodaj nowy produkt do tabeli product
+INSERT INTO product VALUES(nextval(product_seq),'Laptop','ELX200/16/512', 2340.0, 'szt.',1.0,'{"RAM": 16, "SSD": 512, "size": 15.6}', 1);
+#Dodaj do zamówienia z linii 87 dodany produkt z linii 91
+INSERT INTO product_corder VALUES(lastval(product_seq), lastval(corder_seq), 2);
+#Dodaj nowy produkt do tabeli product
+INSERT INTO product VALUES(nextval(product_seq),"Mąka",'M450', 3.4, 'kg',1.0,'{"producent": "Młyny S.A.", "gatunek": 450}', 3);
+#Dodaj do zamówienia z linii 87 dodany produkt z linii 94
+INSERT INTO product_corder VALUES(lastval(product_seq), lastval(corder_seq), 10);
+
+####################################################################################################################
+
+kwerneda2
+
+SELECT p.prod_name, p.prod_code, p.price, pc.quantity FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+WHERE pc.order_id = 2;
+SELECT p.prod_name, p.price * pc.quantity as koszt FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+WHERE pc.order_id = 2;
+#koszt zamówionych produktów
+SELECT sum(p.price * pc.quantity) AS 'koszt całkowity' FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+WHERE pc.order_id = 2;
+#koszt zamówionych produktów z kosztem zamówienia dla zamówienia nr 2
+SELECT sum(p.price * pc.quantity) + c.price AS 'koszt zamówienia' FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+JOIN corder c ON c.order_id = pc.order_id
+WHERE pc.order_id = 2;
+# koszty wszytkich zamówień
+SELECT c.order_id, sum(p.price * pc.quantity) + c.price AS 'koszt zamówienia' FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+JOIN corder c ON c.order_id = pc.order_id
+GROUP BY c.order_id;
+#nieopłacone zamówienia
+SELECT order_id FROM corder WHERE payment IS NULL;
+#opłacone zamówienia
+SELECT order_id FROM corder WHERE payment IS NOT NULL;
+SELECT * FROM payments;
+#Niepoprawnie opłacone zamówienia
+SELECT * FROM payments WHERE payment <> koszt AND payment IS NOT NULL;
+#Lista niepoprawnie opłaconych zamówień z różnicą między zapłatą a kosztem
+SELECT order_id, (payment - koszt) AS bilans FROM payments WHERE payment <> koszt AND payment IS NOT NULL;
+SELECT order_id, 
+case 
+	when (payment - koszt) > 0 then CONCAT('nadpłata w wysokości ', payment - koszt)
+	ELSE CONCAT('niedopłata w wysokości ', payment - koszt)
+END AS bilans
+FROM payments WHERE payment <> koszt AND payment IS NOT NULL;
+#Lista zamówień niezrealizowanych
+SELECT order_id FROM corder WHERE order_status IN ('SD','PDW','D');
+
+#####################################################################################################
+
+kwerenda3
+
+SELECT * FROM product_type;
+SELECT * FROM product WHERE prod_type = 1;
+#wyswietlenie wybranego wartości pola z kolumny zawierającej JSON
+SELECT prod_code, price, JSON_VALUE(description, '$.size') AS screen FROM product;
+SELECT prod_code, price, JSON_VALUE(description, '$.kolor') AS kolor FROM product;
+SELECT JSON_KEYS(description) FROM product;
+SELECT prod_code, price FROM product WHERE JSON_VALUE(description, '$.RAM') = 16;
+
+#########################################################################################################
+
+kwerenda4
+
+#zmiana statusu zamówienia na przygotoewanie do wysyłki
+UPDATE corder c 
+	SET c.order_status = 'PDW'
+	WHERE c.order_id = 2;
+#zmiana status zamówieni na czasowe niemożliwe do zrealizowania
+#lista zamówień o statusie PDW
+SELECT * FROM corder WHERE order_status = 'PDW';
+#usuwanie zamówień  o statusie TD
+DELETE FROM corder WHERE order_status = 'TD';
