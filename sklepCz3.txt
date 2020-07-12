@@ -1,0 +1,7 @@
+SELECT * FROM product_type;
+SELECT * FROM product WHERE prod_type = 1;
+#wyswietlenie wybranego wartości pola z kolumny zawierającej JSON
+SELECT prod_code, price, JSON_VALUE(description, '$.size') AS screen FROM product;
+SELECT prod_code, price, JSON_VALUE(description, '$.kolor') AS kolor FROM product;
+SELECT JSON_KEYS(description) FROM product;
+SELECT prod_code, price FROM product WHERE JSON_VALUE(description, '$.RAM') = 16;

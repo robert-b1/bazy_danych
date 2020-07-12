@@ -1,0 +1,9 @@
+#zmiana statusu zamówienia na przygotoewanie do wysyłki
+UPDATE corder c 
+	SET c.order_status = 'PDW'
+	WHERE c.order_id = 2;
+#zmiana status zamówieni na czasowe niemożliwe do zrealizowania
+#lista zamówień o statusie PDW
+SELECT * FROM corder WHERE order_status = 'PDW';
+#usuwanie zamówień  o statusie TD
+DELETE FROM corder WHERE order_status = 'TD';
