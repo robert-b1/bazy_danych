@@ -1,0 +1,39 @@
+create table user(
+  id integer auto_increment,
+  name varchar(15) NOT NULL UNIQUE DEFAULT 'noname',
+  registered timestamp not NULL default current_timestamp,
+  primary key(id, name)
+  );
+  alter table user add(login varchar(10));      
+  alter table user add(points int default 100);
+  insert into user (name, login, points) values ('kasia','kasia4', 100);
+  insert into user (name, login, points) values ('adam','adamek', 10);
+  insert into user (id, points) values (5, 10);
+  insert into user (name, login, points) values('karol', 'ka',45);
+  update user 
+  set name = 'ola', registered = current_timestamp()
+  where id = 5;
+  ALTER TABLE user 
+  ADD CONSTRAINT no_admin_name 
+  CHECK(name <> 'admin');
+  insert into user (login) values('admin');
+
+###################################################
+
+#select * from user;
+#select name as 'nazwa usera', login as 'login usera' #from user order by login, name;
+#select distinct registered from user;
+#użycie aliasu tabeli
+#select u.name, u.login from user u;
+#pełna nazwa kolumn: tabela.kolumna
+#select user.name, user.login from user;
+#select * from user where id > 3;
+#równoważne postaci wyszukiwania w zakresie
+#select * from user where id >= 2 AND id <=4;
+#select * from user where id between 2 and 4;
+#select * from user where name in ('kasia', 'ola');
+#select * from user where login IS NOT NULL;
+#uzytkownicy o name złożonym tylko z 4 liter
+#select * from user where name like 'kasia';
+select points as 'punkty', count(*) as 'liczba userów' from user group by points;
+select count(*) from user;
