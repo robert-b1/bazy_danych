@@ -1,0 +1,37 @@
+SELECT p.prod_name, p.prod_code, p.price, pc.quantity FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+WHERE pc.order_id = 2;
+SELECT p.prod_name, p.price * pc.quantity as koszt FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+WHERE pc.order_id = 2;
+#koszt zamówionych produktów
+SELECT sum(p.price * pc.quantity) AS 'koszt całkowity' FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+WHERE pc.order_id = 2;
+#koszt zamówionych produktów z kosztem zamówienia dla zamówienia nr 2
+SELECT sum(p.price * pc.quantity) + c.price AS 'koszt zamówienia' FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+JOIN corder c ON c.order_id = pc.order_id
+WHERE pc.order_id = 2;
+# koszty wszytkich zamówień
+SELECT c.order_id, sum(p.price * pc.quantity) + c.price AS 'koszt zamówienia' FROM product_corder pc
+JOIN product p ON p.prod_id = pc.prod_id
+JOIN corder c ON c.order_id = pc.order_id
+GROUP BY c.order_id;
+#nieopłacone zamówienia
+SELECT order_id FROM corder WHERE payment IS NULL;
+#opłacone zamówienia
+SELECT order_id FROM corder WHERE payment IS NOT NULL;
+SELECT * FROM payments;
+#Niepoprawnie opłacone zamówienia
+SELECT * FROM payments WHERE payment <> koszt AND payment IS NOT NULL;
+#Lista niepoprawnie opłaconych zamówień z różnicą między zapłatą a kosztem
+SELECT order_id, (payment - koszt) AS bilans FROM payments WHERE payment <> koszt AND payment IS NOT NULL;
+SELECT order_id, 
+case 
+	when (payment - koszt) > 0 then CONCAT('nadpłata w wysokości ', payment - koszt)
+	ELSE CONCAT('niedopłata w wysokości ', payment - koszt)
+END AS bilans
+FROM payments WHERE payment <> koszt AND payment IS NOT NULL;
+#Lista zamówień niezrealizowanych
+SELECT order_id FROM corder WHERE order_status IN ('SD','PDW','D');
